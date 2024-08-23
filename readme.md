@@ -3,6 +3,7 @@ Link to data: https://archiveofourown.org/admin_posts/18804
 
 Questions for now
 * ego network of one fandom?
+* ID most connected fandom, make game like bacon number
 * network of interrelated tags?
 
 DONE
