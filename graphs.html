@@ -1,0 +1,357 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 750px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": 1801, "label": "Star Trek", "shape": "dot", "size": 1652.0, "title": "Fandom: Star Trek\u003cbr\u003eDegree: 1652\u003cbr\u003eCount: 36097"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 5148298, "label": "Supergirl (TV 2015)", "shape": "dot", "size": 1360.0, "title": "Fandom: Supergirl (TV 2015)\u003cbr\u003eDegree: 1360\u003cbr\u003eCount: 37968"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 414093, "label": "Marvel Cinematic Universe", "shape": "dot", "size": 4876.0, "title": "Fandom: Marvel Cinematic Universe\u003cbr\u003eDegree: 4876\u003cbr\u003eCount: 240536"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 587792, "label": "Arrow (TV 2012)", "shape": "dot", "size": 1472.0, "title": "Fandom: Arrow (TV 2012)\u003cbr\u003eDegree: 1472\u003cbr\u003eCount: 24705"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 46023568, "label": "Dream SMP - Fandom", "shape": "dot", "size": 228.0, "title": "Fandom: Dream SMP - Fandom\u003cbr\u003eDegree: 228\u003cbr\u003eCount: 5577"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 303506, "label": "American Horror Story", "shape": "dot", "size": 702.0, "title": "Fandom: American Horror Story\u003cbr\u003eDegree: 702\u003cbr\u003eCount: 3249"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 34674836, "label": "\u30b1\u30f3\u30ac\u30f3\u30a2\u30b7\u30e5\u30e9 | Kengan Ashura (Anime)", "shape": "dot", "size": 121.0, "title": "Fandom: \u30b1\u30f3\u30ac\u30f3\u30a2\u30b7\u30e5\u30e9 | Kengan Ashura (Anime)\u003cbr\u003eDegree: 121\u003cbr\u003eCount: 103"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1635478, "label": "The 100 (TV)", "shape": "dot", "size": 903.0, "title": "Fandom: The 100 (TV)\u003cbr\u003eDegree: 903\u003cbr\u003eCount: 40599"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 5171863, "label": "DC\u0027s Legends of Tomorrow (TV)", "shape": "dot", "size": 1002.0, "title": "Fandom: DC\u0027s Legends of Tomorrow (TV)\u003cbr\u003eDegree: 1002\u003cbr\u003eCount: 13544"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 14988696, "label": "Dangan Ronpa: Trigger Happy Havoc", "shape": "dot", "size": 636.0, "title": "Fandom: Dangan Ronpa: Trigger Happy Havoc\u003cbr\u003eDegree: 636\u003cbr\u003eCount: 6002"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1118749, "label": "markiplier - Fandom", "shape": "dot", "size": 428.0, "title": "Fandom: markiplier - Fandom\u003cbr\u003eDegree: 428\u003cbr\u003eCount: 4259"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 196510, "label": "Elder Scrolls III: Morrowind", "shape": "dot", "size": 105.0, "title": "Fandom: Elder Scrolls III: Morrowind\u003cbr\u003eDegree: 105\u003cbr\u003eCount: 666"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 18100257, "label": "\u30a4\u30b1\u30e1\u30f3\u6226\u56fd \u6642\u3092\u304b\u3051\u308b\u604b | Ikemen Sengoku: Toki o Kakeru Koi (Visual Novel)", "shape": "dot", "size": 95.0, "title": "Fandom: \u30a4\u30b1\u30e1\u30f3\u6226\u56fd \u6642\u3092\u304b\u3051\u308b\u604b | Ikemen Sengoku: Toki o Kakeru Koi (Visual Novel)\u003cbr\u003eDegree: 95\u003cbr\u003eCount: 1283"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 244259, "label": "Katekyou Hitman Reborn!", "shape": "dot", "size": 1048.0, "title": "Fandom: Katekyou Hitman Reborn!\u003cbr\u003eDegree: 1048\u003cbr\u003eCount: 18145"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 218280, "label": "Video Blogging RPF", "shape": "dot", "size": 1302.0, "title": "Fandom: Video Blogging RPF\u003cbr\u003eDegree: 1302\u003cbr\u003eCount: 39078"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 12845, "label": "Hetalia: Axis Powers", "shape": "dot", "size": 1337.0, "title": "Fandom: Hetalia: Axis Powers\u003cbr\u003eDegree: 1337\u003cbr\u003eCount: 43092"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 3828398, "label": "\u50d5\u306e\u30d2\u30fc\u30ed\u30fc\u30a2\u30ab\u30c7\u30df\u30a2 | Boku no Hero Academia | My Hero Academia", "shape": "dot", "size": 2714.0, "title": "Fandom: \u50d5\u306e\u30d2\u30fc\u30ed\u30fc\u30a2\u30ab\u30c7\u30df\u30a2 | Boku no Hero Academia | My Hero Academia\u003cbr\u003eDegree: 2714\u003cbr\u003eCount: 204096"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 18197556, "label": "\u5929\u4e0b\u7d71\u4e00\u604b\u306e\u4e71 | Sakura Amidst Chaos | Samurai Love Ballad (Visual Novel)", "shape": "dot", "size": 57.0, "title": "Fandom: \u5929\u4e0b\u7d71\u4e00\u604b\u306e\u4e71 | Sakura Amidst Chaos | Samurai Love Ballad (Visual Novel)\u003cbr\u003eDegree: 57\u003cbr\u003eCount: 712"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 251062, "label": "Dungeons \u0026 Dragons (Roleplaying Game)", "shape": "dot", "size": 621.0, "title": "Fandom: Dungeons \u0026 Dragons (Roleplaying Game)\u003cbr\u003eDegree: 621\u003cbr\u003eCount: 4841"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1464, "label": "Star Trek: The Original Series", "shape": "dot", "size": 1401.0, "title": "Fandom: Star Trek: The Original Series\u003cbr\u003eDegree: 1401\u003cbr\u003eCount: 15212"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 254648, "label": "Minecraft (Video Game)", "shape": "dot", "size": 1147.0, "title": "Fandom: Minecraft (Video Game)\u003cbr\u003eDegree: 1147\u003cbr\u003eCount: 31185"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 2282814, "label": "The Flash (TV 2014)", "shape": "dot", "size": 1462.0, "title": "Fandom: The Flash (TV 2014)\u003cbr\u003eDegree: 1462\u003cbr\u003eCount: 27012"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 20169792, "label": "Youtube egos", "shape": "dot", "size": 17.0, "title": "Fandom: Youtube egos\u003cbr\u003eDegree: 17\u003cbr\u003eCount: 96"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 34135873, "label": "\u9b3c\u6ec5\u306e\u5203 | Demon Slayer: Kimetsu no Yaiba (Anime)", "shape": "dot", "size": 651.0, "title": "Fandom: \u9b3c\u6ec5\u306e\u5203 | Demon Slayer: Kimetsu no Yaiba (Anime)\u003cbr\u003eDegree: 651\u003cbr\u003eCount: 7832"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 236870, "label": "Youtube RPF", "shape": "dot", "size": 333.0, "title": "Fandom: Youtube RPF\u003cbr\u003eDegree: 333\u003cbr\u003eCount: 2002"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 586439, "label": "Captain America (Movies)", "shape": "dot", "size": 2296.0, "title": "Fandom: Captain America (Movies)\u003cbr\u003eDegree: 2296\u003cbr\u003eCount: 95654"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 50934729, "label": "Trolls: TrollsTopia (Cartoon)", "shape": "dot", "size": 8.0, "title": "Fandom: Trolls: TrollsTopia (Cartoon)\u003cbr\u003eDegree: 8\u003cbr\u003eCount: 63"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 601802, "label": "Star Trek: Alternate Original Series (Movies)", "shape": "dot", "size": 1452.0, "title": "Fandom: Star Trek: Alternate Original Series (Movies)\u003cbr\u003eDegree: 1452\u003cbr\u003eCount: 33604"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 3658, "label": "Tokyo Babylon", "shape": "dot", "size": 152.0, "title": "Fandom: Tokyo Babylon\u003cbr\u003eDegree: 152\u003cbr\u003eCount: 641"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 747342, "label": "Star Wars: The Clone Wars (2008) - All Media Types", "shape": "dot", "size": 1041.0, "title": "Fandom: Star Wars: The Clone Wars (2008) - All Media Types\u003cbr\u003eDegree: 1041\u003cbr\u003eCount: 21336"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1001939, "label": "The Avengers (Marvel Movies)", "shape": "dot", "size": 3724.0, "title": "Fandom: The Avengers (Marvel Movies)\u003cbr\u003eDegree: 3724\u003cbr\u003eCount: 157813"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 43220, "label": "Vocaloid", "shape": "dot", "size": 704.0, "title": "Fandom: Vocaloid\u003cbr\u003eDegree: 704\u003cbr\u003eCount: 2991"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 87508, "label": "Les Schtroumpfs | The Smurfs", "shape": "dot", "size": 98.0, "title": "Fandom: Les Schtroumpfs | The Smurfs\u003cbr\u003eDegree: 98\u003cbr\u003eCount: 131"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 47822806, "label": "Trolls (Movies 2016 2020)", "shape": "dot", "size": 55.0, "title": "Fandom: Trolls (Movies 2016 2020)\u003cbr\u003eDegree: 55\u003cbr\u003eCount: 216"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 101375, "label": "Star Wars - All Media Types", "shape": "dot", "size": 3409.0, "title": "Fandom: Star Wars - All Media Types\u003cbr\u003eDegree: 3409\u003cbr\u003eCount: 96000"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1633246, "label": "Dangan Ronpa - All Media Types", "shape": "dot", "size": 1554.0, "title": "Fandom: Dangan Ronpa - All Media Types\u003cbr\u003eDegree: 1554\u003cbr\u003eCount: 21958"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 7266, "label": "Marvel", "shape": "dot", "size": 2910.0, "title": "Fandom: Marvel\u003cbr\u003eDegree: 2910\u003cbr\u003eCount: 147757"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 21364713, "label": "Trolls: The Beat Goes On (Cartoon)", "shape": "dot", "size": 26.0, "title": "Fandom: Trolls: The Beat Goes On (Cartoon)\u003cbr\u003eDegree: 26\u003cbr\u003eCount: 196"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 26238188, "label": "American Horror Story: Apocalypse", "shape": "dot", "size": 82.0, "title": "Fandom: American Horror Story: Apocalypse\u003cbr\u003eDegree: 82\u003cbr\u003eCount: 1406"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 250093, "label": "X-Men - All Media Types", "shape": "dot", "size": 2041.0, "title": "Fandom: X-Men - All Media Types\u003cbr\u003eDegree: 2041\u003cbr\u003eCount: 13206"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 21872622, "label": "\u9b3c\u6ec5\u306e\u5203 | Kimetsu no Yaiba (Manga)", "shape": "dot", "size": 280.0, "title": "Fandom: \u9b3c\u6ec5\u306e\u5203 | Kimetsu no Yaiba (Manga)\u003cbr\u003eDegree: 280\u003cbr\u003eCount: 8796"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 51823, "label": "Forgotten Realms", "shape": "dot", "size": 110.0, "title": "Fandom: Forgotten Realms\u003cbr\u003eDegree: 110\u003cbr\u003eCount: 675"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 35398640, "label": "His Dark Materials (TV)", "shape": "dot", "size": 111.0, "title": "Fandom: His Dark Materials (TV)\u003cbr\u003eDegree: 111\u003cbr\u003eCount: 589"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 463728, "label": "Daria (Cartoon)", "shape": "dot", "size": 393.0, "title": "Fandom: Daria (Cartoon)\u003cbr\u003eDegree: 393\u003cbr\u003eCount: 662"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 33035890, "label": "\u9648\u60c5\u4ee4 | The Untamed (TV)", "shape": "dot", "size": 599.0, "title": "Fandom: \u9648\u60c5\u4ee4 | The Untamed (TV)\u003cbr\u003eDegree: 599\u003cbr\u003eCount: 30914"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 579568, "label": "Dungeons \u0026 Dragons - All Media Types", "shape": "dot", "size": 250.0, "title": "Fandom: Dungeons \u0026 Dragons - All Media Types\u003cbr\u003eDegree: 250\u003cbr\u003eCount: 1520"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 114548, "label": "His Dark Materials - Philip Pullman", "shape": "dot", "size": 727.0, "title": "Fandom: His Dark Materials - Philip Pullman\u003cbr\u003eDegree: 727\u003cbr\u003eCount: 2175"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 34606586, "label": "\u30b1\u30f3\u30ac\u30f3\u30a2\u30b7\u30e5\u30e9 | Kengan Ashura (Manga)", "shape": "dot", "size": 17.0, "title": "Fandom: \u30b1\u30f3\u30ac\u30f3\u30a2\u30b7\u30e5\u30e9 | Kengan Ashura (Manga)\u003cbr\u003eDegree: 17\u003cbr\u003eCount: 156"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 11987966, "label": "\u9b54\u9053\u7956\u5e08 - \u58a8\u9999\u94dc\u81ed | M\u00f3d\u00e0o Z\u01d4sh\u012b - M\u00f2xi\u0101ng T\u00f3ngxi\u00f9", "shape": "dot", "size": 546.0, "title": "Fandom: \u9b54\u9053\u7956\u5e08 - \u58a8\u9999\u94dc\u81ed | M\u00f3d\u00e0o Z\u01d4sh\u012b - M\u00f2xi\u0101ng T\u00f3ngxi\u00f9\u003cbr\u003eDegree: 546\u003cbr\u003eCount: 47441"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": 1281791, "label": "X -\u30a8\u30c3\u30af\u30b9- | X/1999", "shape": "dot", "size": 132.0, "title": "Fandom: X -\u30a8\u30c3\u30af\u30b9- | X/1999\u003cbr\u003eDegree: 132\u003cbr\u003eCount: 724"}]);
+                  edges = new vis.DataSet([{"from": 1801, "to": 414093, "value": 76}, {"from": 1801, "to": 1001939, "value": 66}, {"from": 1801, "to": 11987966, "value": 3}, {"from": 1801, "to": 33035890, "value": 1}, {"from": 1801, "to": 1633246, "value": 2}, {"from": 1801, "to": 218280, "value": 1}, {"from": 1801, "to": 254648, "value": 2}, {"from": 1801, "to": 51823, "value": 1}, {"from": 1801, "to": 251062, "value": 7}, {"from": 1801, "to": 1464, "value": 4437}, {"from": 1801, "to": 601802, "value": 6753}, {"from": 1801, "to": 3828398, "value": 14}, {"from": 1801, "to": 101375, "value": 122}, {"from": 1801, "to": 250093, "value": 14}, {"from": 1801, "to": 747342, "value": 10}, {"from": 1801, "to": 7266, "value": 28}, {"from": 1801, "to": 303506, "value": 1}, {"from": 1801, "to": 587792, "value": 6}, {"from": 1801, "to": 2282814, "value": 8}, {"from": 1801, "to": 5148298, "value": 6}, {"from": 1801, "to": 114548, "value": 7}, {"from": 1801, "to": 43220, "value": 2}, {"from": 1801, "to": 35398640, "value": 1}, {"from": 1801, "to": 586439, "value": 21}, {"from": 1801, "to": 1635478, "value": 8}, {"from": 1801, "to": 196510, "value": 2}, {"from": 1801, "to": 5171863, "value": 4}, {"from": 1801, "to": 12845, "value": 5}, {"from": 1801, "to": 463728, "value": 1}, {"from": 1801, "to": 579568, "value": 1}, {"from": 1801, "to": 1118749, "value": 1}, {"from": 1801, "to": 244259, "value": 1}, {"from": 5148298, "to": 414093, "value": 185}, {"from": 5148298, "to": 1001939, "value": 102}, {"from": 5148298, "to": 33035890, "value": 1}, {"from": 5148298, "to": 14988696, "value": 1}, {"from": 5148298, "to": 218280, "value": 2}, {"from": 5148298, "to": 254648, "value": 1}, {"from": 5148298, "to": 251062, "value": 3}, {"from": 5148298, "to": 1464, "value": 6}, {"from": 5148298, "to": 601802, "value": 8}, {"from": 5148298, "to": 12845, "value": 1}, {"from": 5148298, "to": 250093, "value": 18}, {"from": 5148298, "to": 7266, "value": 27}, {"from": 5148298, "to": 586439, "value": 36}, {"from": 5148298, "to": 114548, "value": 6}, {"from": 5148298, "to": 35398640, "value": 1}, {"from": 5148298, "to": 101375, "value": 38}, {"from": 5148298, "to": 747342, "value": 5}, {"from": 5148298, "to": 244259, "value": 1}, {"from": 5148298, "to": 3828398, "value": 4}, {"from": 5148298, "to": 587792, "value": 1284}, {"from": 5148298, "to": 1635478, "value": 84}, {"from": 5148298, "to": 2282814, "value": 1422}, {"from": 5148298, "to": 5171863, "value": 1042}, {"from": 5148298, "to": 303506, "value": 1}, {"from": 5148298, "to": 1118749, "value": 1}, {"from": 5148298, "to": 87508, "value": 1}, {"from": 414093, "to": 1001939, "value": 83981}, {"from": 414093, "to": 7266, "value": 25135}, {"from": 414093, "to": 586439, "value": 51455}, {"from": 414093, "to": 250093, "value": 1088}, {"from": 414093, "to": 5171863, "value": 91}, {"from": 414093, "to": 12845, "value": 46}, {"from": 414093, "to": 101375, "value": 338}, {"from": 414093, "to": 3828398, "value": 186}, {"from": 414093, "to": 601802, "value": 128}, {"from": 414093, "to": 34135873, "value": 11}, {"from": 414093, "to": 21872622, "value": 4}, {"from": 414093, "to": 587792, "value": 242}, {"from": 414093, "to": 1633246, "value": 22}, {"from": 414093, "to": 254648, "value": 15}, {"from": 414093, "to": 2282814, "value": 179}, {"from": 414093, "to": 14988696, "value": 5}, {"from": 414093, "to": 1464, "value": 36}, {"from": 414093, "to": 747342, "value": 53}, {"from": 414093, "to": 463728, "value": 4}, {"from": 414093, "to": 1635478, "value": 55}, {"from": 414093, "to": 244259, "value": 28}, {"from": 414093, "to": 218280, "value": 14}, {"from": 414093, "to": 303506, "value": 15}, {"from": 414093, "to": 33035890, "value": 9}, {"from": 414093, "to": 43220, "value": 3}, {"from": 414093, "to": 114548, "value": 56}, {"from": 414093, "to": 11987966, "value": 4}, {"from": 414093, "to": 46023568, "value": 2}, {"from": 414093, "to": 579568, "value": 6}, {"from": 414093, "to": 1118749, "value": 1}, {"from": 414093, "to": 26238188, "value": 2}, {"from": 414093, "to": 35398640, "value": 2}, {"from": 414093, "to": 1281791, "value": 1}, {"from": 414093, "to": 251062, "value": 15}, {"from": 414093, "to": 196510, "value": 1}, {"from": 414093, "to": 87508, "value": 1}, {"from": 414093, "to": 236870, "value": 3}, {"from": 587792, "to": 1001939, "value": 190}, {"from": 587792, "to": 218280, "value": 4}, {"from": 587792, "to": 1464, "value": 7}, {"from": 587792, "to": 601802, "value": 19}, {"from": 587792, "to": 12845, "value": 1}, {"from": 587792, "to": 250093, "value": 35}, {"from": 587792, "to": 7266, "value": 25}, {"from": 587792, "to": 586439, "value": 97}, {"from": 587792, "to": 114548, "value": 5}, {"from": 587792, "to": 101375, "value": 24}, {"from": 587792, "to": 747342, "value": 4}, {"from": 587792, "to": 3828398, "value": 3}, {"from": 587792, "to": 1635478, "value": 35}, {"from": 587792, "to": 2282814, "value": 4196}, {"from": 587792, "to": 5171863, "value": 1868}, {"from": 587792, "to": 303506, "value": 3}, {"from": 587792, "to": 1118749, "value": 2}, {"from": 587792, "to": 236870, "value": 1}, {"from": 46023568, "to": 1001939, "value": 1}, {"from": 46023568, "to": 1633246, "value": 1}, {"from": 46023568, "to": 218280, "value": 2364}, {"from": 46023568, "to": 254648, "value": 3296}, {"from": 46023568, "to": 251062, "value": 1}, {"from": 46023568, "to": 101375, "value": 1}, {"from": 46023568, "to": 3828398, "value": 2}, {"from": 46023568, "to": 236870, "value": 2}, {"from": 46023568, "to": 1118749, "value": 1}, {"from": 303506, "to": 1001939, "value": 11}, {"from": 303506, "to": 1633246, "value": 1}, {"from": 303506, "to": 14988696, "value": 1}, {"from": 303506, "to": 218280, "value": 2}, {"from": 303506, "to": 1464, "value": 1}, {"from": 303506, "to": 601802, "value": 3}, {"from": 303506, "to": 1281791, "value": 1}, {"from": 303506, "to": 12845, "value": 3}, {"from": 303506, "to": 250093, "value": 4}, {"from": 303506, "to": 7266, "value": 5}, {"from": 303506, "to": 586439, "value": 1}, {"from": 303506, "to": 101375, "value": 5}, {"from": 303506, "to": 747342, "value": 1}, {"from": 303506, "to": 3828398, "value": 7}, {"from": 303506, "to": 1635478, "value": 3}, {"from": 303506, "to": 2282814, "value": 2}, {"from": 303506, "to": 5171863, "value": 1}, {"from": 303506, "to": 26238188, "value": 1018}, {"from": 34674836, "to": 1633246, "value": 6}, {"from": 34674836, "to": 14988696, "value": 6}, {"from": 34674836, "to": 34606586, "value": 83}, {"from": 34674836, "to": 3828398, "value": 1}, {"from": 1635478, "to": 1001939, "value": 17}, {"from": 1635478, "to": 33035890, "value": 1}, {"from": 1635478, "to": 218280, "value": 1}, {"from": 1635478, "to": 1464, "value": 1}, {"from": 1635478, "to": 601802, "value": 11}, {"from": 1635478, "to": 1281791, "value": 1}, {"from": 1635478, "to": 250093, "value": 4}, {"from": 1635478, "to": 7266, "value": 2}, {"from": 1635478, "to": 586439, "value": 10}, {"from": 1635478, "to": 114548, "value": 14}, {"from": 1635478, "to": 101375, "value": 19}, {"from": 1635478, "to": 244259, "value": 2}, {"from": 1635478, "to": 3828398, "value": 4}, {"from": 1635478, "to": 463728, "value": 1}, {"from": 1635478, "to": 2282814, "value": 13}, {"from": 1635478, "to": 5171863, "value": 18}, {"from": 5171863, "to": 1001939, "value": 61}, {"from": 5171863, "to": 11987966, "value": 1}, {"from": 5171863, "to": 218280, "value": 1}, {"from": 5171863, "to": 251062, "value": 1}, {"from": 5171863, "to": 1464, "value": 5}, {"from": 5171863, "to": 601802, "value": 4}, {"from": 5171863, "to": 12845, "value": 1}, {"from": 5171863, "to": 250093, "value": 6}, {"from": 5171863, "to": 7266, "value": 17}, {"from": 5171863, "to": 586439, "value": 27}, {"from": 5171863, "to": 114548, "value": 1}, {"from": 5171863, "to": 101375, "value": 23}, {"from": 5171863, "to": 747342, "value": 3}, {"from": 5171863, "to": 3828398, "value": 2}, {"from": 5171863, "to": 463728, "value": 1}, {"from": 5171863, "to": 2282814, "value": 3856}, {"from": 5171863, "to": 1118749, "value": 1}, {"from": 14988696, "to": 1001939, "value": 2}, {"from": 14988696, "to": 11987966, "value": 2}, {"from": 14988696, "to": 33035890, "value": 1}, {"from": 14988696, "to": 1633246, "value": 4084}, {"from": 14988696, "to": 3828398, "value": 46}, {"from": 14988696, "to": 7266, "value": 2}, {"from": 14988696, "to": 101375, "value": 3}, {"from": 14988696, "to": 250093, "value": 1}, {"from": 14988696, "to": 2282814, "value": 1}, {"from": 14988696, "to": 21872622, "value": 1}, {"from": 14988696, "to": 34135873, "value": 3}, {"from": 14988696, "to": 43220, "value": 5}, {"from": 14988696, "to": 244259, "value": 1}, {"from": 14988696, "to": 12845, "value": 4}, {"from": 14988696, "to": 218280, "value": 1}, {"from": 14988696, "to": 586439, "value": 1}, {"from": 14988696, "to": 251062, "value": 1}, {"from": 14988696, "to": 579568, "value": 1}, {"from": 1118749, "to": 1001939, "value": 1}, {"from": 1118749, "to": 218280, "value": 1176}, {"from": 1118749, "to": 1464, "value": 1}, {"from": 1118749, "to": 601802, "value": 1}, {"from": 1118749, "to": 12845, "value": 1}, {"from": 1118749, "to": 250093, "value": 1}, {"from": 1118749, "to": 7266, "value": 1}, {"from": 1118749, "to": 101375, "value": 1}, {"from": 1118749, "to": 3828398, "value": 1}, {"from": 1118749, "to": 2282814, "value": 1}, {"from": 1118749, "to": 236870, "value": 305}, {"from": 1118749, "to": 20169792, "value": 17}, {"from": 196510, "to": 1001939, "value": 1}, {"from": 196510, "to": 251062, "value": 1}, {"from": 196510, "to": 101375, "value": 3}, {"from": 196510, "to": 463728, "value": 25}, {"from": 196510, "to": 579568, "value": 1}, {"from": 18100257, "to": 1633246, "value": 1}, {"from": 18100257, "to": 34135873, "value": 1}, {"from": 18100257, "to": 18197556, "value": 14}, {"from": 18100257, "to": 244259, "value": 1}, {"from": 18100257, "to": 3828398, "value": 5}, {"from": 244259, "to": 1001939, "value": 22}, {"from": 244259, "to": 11987966, "value": 5}, {"from": 244259, "to": 33035890, "value": 2}, {"from": 244259, "to": 1633246, "value": 2}, {"from": 244259, "to": 218280, "value": 3}, {"from": 244259, "to": 254648, "value": 3}, {"from": 244259, "to": 601802, "value": 2}, {"from": 244259, "to": 3658, "value": 1}, {"from": 244259, "to": 1281791, "value": 2}, {"from": 244259, "to": 12845, "value": 22}, {"from": 244259, "to": 250093, "value": 4}, {"from": 244259, "to": 7266, "value": 2}, {"from": 244259, "to": 21872622, "value": 8}, {"from": 244259, "to": 34135873, "value": 10}, {"from": 244259, "to": 43220, "value": 8}, {"from": 244259, "to": 586439, "value": 7}, {"from": 244259, "to": 101375, "value": 17}, {"from": 244259, "to": 747342, "value": 2}, {"from": 244259, "to": 3828398, "value": 250}, {"from": 218280, "to": 1001939, "value": 7}, {"from": 218280, "to": 1633246, "value": 28}, {"from": 218280, "to": 254648, "value": 16448}, {"from": 218280, "to": 101375, "value": 18}, {"from": 218280, "to": 7266, "value": 2}, {"from": 218280, "to": 3828398, "value": 22}, {"from": 218280, "to": 34135873, "value": 4}, {"from": 218280, "to": 21872622, "value": 1}, {"from": 218280, "to": 236870, "value": 653}, {"from": 218280, "to": 251062, "value": 6}, {"from": 218280, "to": 1464, "value": 2}, {"from": 218280, "to": 250093, "value": 1}, {"from": 218280, "to": 601802, "value": 2}, {"from": 218280, "to": 747342, "value": 1}, {"from": 218280, "to": 2282814, "value": 4}, {"from": 218280, "to": 12845, "value": 3}, {"from": 218280, "to": 20169792, "value": 3}, {"from": 12845, "to": 1001939, "value": 44}, {"from": 12845, "to": 11987966, "value": 3}, {"from": 12845, "to": 1633246, "value": 23}, {"from": 12845, "to": 254648, "value": 6}, {"from": 12845, "to": 251062, "value": 1}, {"from": 12845, "to": 1464, "value": 3}, {"from": 12845, "to": 601802, "value": 5}, {"from": 12845, "to": 3658, "value": 3}, {"from": 12845, "to": 1281791, "value": 1}, {"from": 12845, "to": 250093, "value": 9}, {"from": 12845, "to": 3828398, "value": 53}, {"from": 12845, "to": 34135873, "value": 3}, {"from": 12845, "to": 747342, "value": 2}, {"from": 12845, "to": 43220, "value": 19}, {"from": 12845, "to": 586439, "value": 12}, {"from": 12845, "to": 7266, "value": 5}, {"from": 12845, "to": 101375, "value": 14}, {"from": 12845, "to": 2282814, "value": 2}, {"from": 12845, "to": 114548, "value": 1}, {"from": 12845, "to": 579568, "value": 1}, {"from": 3828398, "to": 1001939, "value": 83}, {"from": 3828398, "to": 11987966, "value": 18}, {"from": 3828398, "to": 33035890, "value": 14}, {"from": 3828398, "to": 1633246, "value": 175}, {"from": 3828398, "to": 254648, "value": 39}, {"from": 3828398, "to": 251062, "value": 22}, {"from": 3828398, "to": 601802, "value": 4}, {"from": 3828398, "to": 3658, "value": 1}, {"from": 3828398, "to": 34606586, "value": 3}, {"from": 3828398, "to": 250093, "value": 31}, {"from": 3828398, "to": 7266, "value": 97}, {"from": 3828398, "to": 21872622, "value": 79}, {"from": 3828398, "to": 34135873, "value": 154}, {"from": 3828398, "to": 43220, "value": 15}, {"from": 3828398, "to": 586439, "value": 5}, {"from": 3828398, "to": 18197556, "value": 1}, {"from": 3828398, "to": 114548, "value": 5}, {"from": 3828398, "to": 101375, "value": 63}, {"from": 3828398, "to": 747342, "value": 5}, {"from": 3828398, "to": 2282814, "value": 13}, {"from": 3828398, "to": 463728, "value": 1}, {"from": 3828398, "to": 579568, "value": 6}, {"from": 251062, "to": 1001939, "value": 3}, {"from": 251062, "to": 11987966, "value": 1}, {"from": 251062, "to": 33035890, "value": 1}, {"from": 251062, "to": 1633246, "value": 2}, {"from": 251062, "to": 254648, "value": 7}, {"from": 251062, "to": 51823, "value": 140}, {"from": 251062, "to": 579568, "value": 990}, {"from": 251062, "to": 101375, "value": 9}, {"from": 251062, "to": 250093, "value": 2}, {"from": 251062, "to": 586439, "value": 3}, {"from": 251062, "to": 7266, "value": 4}, {"from": 251062, "to": 236870, "value": 2}, {"from": 251062, "to": 601802, "value": 1}, {"from": 251062, "to": 1464, "value": 2}, {"from": 1464, "to": 1001939, "value": 32}, {"from": 1464, "to": 601802, "value": 3071}, {"from": 1464, "to": 7266, "value": 10}, {"from": 1464, "to": 101375, "value": 65}, {"from": 1464, "to": 250093, "value": 4}, {"from": 1464, "to": 747342, "value": 12}, {"from": 1464, "to": 2282814, "value": 10}, {"from": 1464, "to": 586439, "value": 13}, {"from": 1464, "to": 114548, "value": 3}, {"from": 1464, "to": 236870, "value": 1}, {"from": 254648, "to": 1001939, "value": 7}, {"from": 254648, "to": 1633246, "value": 25}, {"from": 254648, "to": 101375, "value": 18}, {"from": 254648, "to": 7266, "value": 7}, {"from": 254648, "to": 34135873, "value": 7}, {"from": 254648, "to": 236870, "value": 7}, {"from": 254648, "to": 43220, "value": 5}, {"from": 254648, "to": 747342, "value": 7}, {"from": 254648, "to": 586439, "value": 1}, {"from": 254648, "to": 579568, "value": 1}, {"from": 2282814, "to": 1001939, "value": 146}, {"from": 2282814, "to": 1633246, "value": 1}, {"from": 2282814, "to": 601802, "value": 12}, {"from": 2282814, "to": 250093, "value": 19}, {"from": 2282814, "to": 7266, "value": 34}, {"from": 2282814, "to": 21872622, "value": 1}, {"from": 2282814, "to": 34135873, "value": 1}, {"from": 2282814, "to": 586439, "value": 56}, {"from": 2282814, "to": 101375, "value": 32}, {"from": 2282814, "to": 747342, "value": 5}, {"from": 2282814, "to": 87508, "value": 1}, {"from": 2282814, "to": 236870, "value": 1}, {"from": 20169792, "to": 236870, "value": 88}, {"from": 34135873, "to": 1001939, "value": 7}, {"from": 34135873, "to": 11987966, "value": 6}, {"from": 34135873, "to": 33035890, "value": 3}, {"from": 34135873, "to": 1633246, "value": 10}, {"from": 34135873, "to": 250093, "value": 3}, {"from": 34135873, "to": 7266, "value": 4}, {"from": 34135873, "to": 21872622, "value": 5569}, {"from": 34135873, "to": 101375, "value": 4}, {"from": 236870, "to": 1001939, "value": 1}, {"from": 236870, "to": 601802, "value": 1}, {"from": 236870, "to": 250093, "value": 1}, {"from": 236870, "to": 7266, "value": 1}, {"from": 236870, "to": 586439, "value": 2}, {"from": 236870, "to": 101375, "value": 11}, {"from": 586439, "to": 1001939, "value": 35409}, {"from": 586439, "to": 11987966, "value": 3}, {"from": 586439, "to": 33035890, "value": 4}, {"from": 586439, "to": 1633246, "value": 1}, {"from": 586439, "to": 601802, "value": 43}, {"from": 586439, "to": 250093, "value": 235}, {"from": 586439, "to": 7266, "value": 6305}, {"from": 586439, "to": 101375, "value": 56}, {"from": 586439, "to": 114548, "value": 25}, {"from": 586439, "to": 747342, "value": 5}, {"from": 586439, "to": 579568, "value": 1}, {"from": 586439, "to": 463728, "value": 1}, {"from": 50934729, "to": 87508, "value": 2}, {"from": 50934729, "to": 21364713, "value": 24}, {"from": 50934729, "to": 47822806, "value": 47}, {"from": 601802, "to": 1001939, "value": 107}, {"from": 601802, "to": 101375, "value": 63}, {"from": 601802, "to": 747342, "value": 12}, {"from": 601802, "to": 7266, "value": 15}, {"from": 601802, "to": 250093, "value": 15}, {"from": 601802, "to": 114548, "value": 8}, {"from": 3658, "to": 1633246, "value": 1}, {"from": 3658, "to": 1281791, "value": 242}, {"from": 3658, "to": 114548, "value": 1}, {"from": 3658, "to": 43220, "value": 1}, {"from": 747342, "to": 1001939, "value": 14}, {"from": 747342, "to": 1633246, "value": 2}, {"from": 747342, "to": 250093, "value": 8}, {"from": 747342, "to": 7266, "value": 12}, {"from": 747342, "to": 114548, "value": 7}, {"from": 747342, "to": 101375, "value": 12260}, {"from": 747342, "to": 463728, "value": 1}, {"from": 1001939, "to": 7266, "value": 15378}, {"from": 1001939, "to": 250093, "value": 644}, {"from": 1001939, "to": 101375, "value": 126}, {"from": 1001939, "to": 11987966, "value": 3}, {"from": 1001939, "to": 33035890, "value": 3}, {"from": 1001939, "to": 21872622, "value": 3}, {"from": 1001939, "to": 1633246, "value": 6}, {"from": 1001939, "to": 1281791, "value": 1}, {"from": 1001939, "to": 579568, "value": 2}, {"from": 1001939, "to": 114548, "value": 34}, {"from": 1001939, "to": 26238188, "value": 1}, {"from": 1001939, "to": 87508, "value": 2}, {"from": 1001939, "to": 463728, "value": 1}, {"from": 43220, "to": 11987966, "value": 2}, {"from": 43220, "to": 33035890, "value": 1}, {"from": 43220, "to": 1633246, "value": 21}, {"from": 43220, "to": 7266, "value": 2}, {"from": 43220, "to": 101375, "value": 4}, {"from": 87508, "to": 101375, "value": 1}, {"from": 87508, "to": 21364713, "value": 3}, {"from": 87508, "to": 47822806, "value": 3}, {"from": 47822806, "to": 1633246, "value": 1}, {"from": 47822806, "to": 21364713, "value": 63}, {"from": 101375, "to": 11987966, "value": 14}, {"from": 101375, "to": 33035890, "value": 9}, {"from": 101375, "to": 1633246, "value": 14}, {"from": 101375, "to": 51823, "value": 2}, {"from": 101375, "to": 250093, "value": 71}, {"from": 101375, "to": 7266, "value": 75}, {"from": 101375, "to": 21872622, "value": 2}, {"from": 101375, "to": 114548, "value": 17}, {"from": 101375, "to": 26238188, "value": 2}, {"from": 101375, "to": 579568, "value": 3}, {"from": 101375, "to": 463728, "value": 1}, {"from": 1633246, "to": 11987966, "value": 2}, {"from": 1633246, "to": 33035890, "value": 2}, {"from": 1633246, "to": 7266, "value": 7}, {"from": 1633246, "to": 250093, "value": 3}, {"from": 1633246, "to": 21872622, "value": 4}, {"from": 1633246, "to": 579568, "value": 2}, {"from": 1633246, "to": 463728, "value": 1}, {"from": 7266, "to": 11987966, "value": 1}, {"from": 7266, "to": 33035890, "value": 2}, {"from": 7266, "to": 51823, "value": 1}, {"from": 7266, "to": 250093, "value": 930}, {"from": 7266, "to": 21872622, "value": 3}, {"from": 7266, "to": 114548, "value": 2}, {"from": 7266, "to": 579568, "value": 1}, {"from": 250093, "to": 11987966, "value": 1}, {"from": 250093, "to": 33035890, "value": 1}, {"from": 250093, "to": 21872622, "value": 2}, {"from": 250093, "to": 114548, "value": 12}, {"from": 250093, "to": 35398640, "value": 2}, {"from": 250093, "to": 463728, "value": 1}, {"from": 21872622, "to": 11987966, "value": 4}, {"from": 21872622, "to": 33035890, "value": 1}, {"from": 51823, "to": 579568, "value": 83}, {"from": 35398640, "to": 11987966, "value": 1}, {"from": 35398640, "to": 114548, "value": 401}, {"from": 33035890, "to": 11987966, "value": 17742}, {"from": 33035890, "to": 114548, "value": 3}, {"from": 114548, "to": 11987966, "value": 4}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": false,
+        "repulsion": {
+            "centralGravity": 0.33,
+            "damping": 0.95,
+            "nodeDistance": 420,
+            "springConstant": 0.1,
+            "springLength": 110
+        },
+        "solver": "repulsion",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
